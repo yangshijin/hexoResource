@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <link rel="dns-prefetch" href="http://qgxiaojin.com">
+  <title>基于python3.x + opencv3的图像学轮廓方法车牌粗定位 | 小谨的随笔</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="前言　　最近准备迈入机器学习的大门，有经验的同事推荐我先从简单的小项目做起，于是乎他推荐了车牌识别的项目，然后就开始了相关的研究，车牌首先是从一个大图中先定位出来，然后才能识别其中的车牌号码，车牌怎么从一张大的图片就定位出来呢，看了基于c++的开源项目easyPR的作者博客，按着他的思路，可以先从图像学的角度来定位车牌。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于python3.x + opencv3的图像学轮廓方法车牌粗定位">
+<meta property="og:url" content="http://qgxiaojin.com/2017/04/11/基于python3-x-opencv3的图像学轮廓方法车牌粗定位/index.html">
+<meta property="og:site_name" content="小谨的随笔">
+<meta property="og:description" content="前言　　最近准备迈入机器学习的大门，有经验的同事推荐我先从简单的小项目做起，于是乎他推荐了车牌识别的项目，然后就开始了相关的研究，车牌首先是从一个大图中先定位出来，然后才能识别其中的车牌号码，车牌怎么从一张大的图片就定位出来呢，看了基于c++的开源项目easyPR的作者博客，按着他的思路，可以先从图像学的角度来定位车牌。">
+<meta property="og:image" content="http://qgxiaojin.com/img/sobel.jpg">
+<meta property="og:image" content="http://qgxiaojin.com/img/binary.jpg">
+<meta property="og:image" content="http://qgxiaojin.com/img/closed.jpg">
+<meta property="og:image" content="http://qgxiaojin.com/img/dilation.jpg">
+<meta property="og:image" content="http://qgxiaojin.com/img/lunkuo-result.jpg">
+<meta property="og:updated_time" content="2017-04-11T16:39:45.891Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="基于python3.x + opencv3的图像学轮廓方法车牌粗定位">
+<meta name="twitter:description" content="前言　　最近准备迈入机器学习的大门，有经验的同事推荐我先从简单的小项目做起，于是乎他推荐了车牌识别的项目，然后就开始了相关的研究，车牌首先是从一个大图中先定位出来，然后才能识别其中的车牌号码，车牌怎么从一张大的图片就定位出来呢，看了基于c++的开源项目easyPR的作者博客，按着他的思路，可以先从图像学的角度来定位车牌。">
+<meta name="twitter:image" content="http://qgxiaojin.com/img/sobel.jpg">
+  
+    <link rel="alternative" href="/atom.xml" title="小谨的随笔" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link rel="stylesheet" type="text/css" href="/./main.2d7529.css">
+  <style type="text/css">
+  
+    #container.show {
+      background: linear-gradient(200deg,#a0cfe4,#e8c37e);
+    }
+  </style>
+  
+
+  
+
+</head>
+
+<body>
+  <div id="container" q-class="show:isCtnShow">
+    <canvas id="anm-canvas" class="anm-canvas"></canvas>
+    <div class="left-col" q-class="show:isShow">
+      
+<div class="overlay" style="background: #4d4d4d"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			<img src="/assets/photo.png" class="js-avatar">
+		</a>
+		<hgroup>
+		  <h1 class="header-author"><a href="/">小谨的随笔</a></h1>
+		</hgroup>
+		
+		<p class="header-subtitle">热爱工作、享受生活、专注技术</p>
+		
+
+		<nav class="header-menu">
+			<ul>
+			
+				<li><a href="/">主页</a></li>
+	        
+			</ul>
+		</nav>
+		<nav class="header-smart-menu">
+    		
+    			
+    			<a q-on="click: openSlider(e, 'innerArchive')" href="javascript:void(0)">文章目录</a>
+    			
+            
+    			
+    			<a q-on="click: openSlider(e, 'friends')" href="javascript:void(0)">友情链接</a>
+    			
+            
+    			
+            
+		</nav>
+		<nav class="header-nav">
+			<div class="social">
+				
+					<a class="weixin" target="_blank" href="/shijin_ysj" title="weixin"><i class="icon-weixin"></i></a>
+		        
+					<a class="mail" target="_blank" href="/yangshijin@vip.qq.com" title="mail"><i class="icon-mail"></i></a>
+		        
+			</div>
+		</nav>
+	</header>		
+</div>
+
+    </div>
+    <div class="mid-col" q-class="show:isShow,hide:isShow|isFalse">
+      
+<nav id="mobile-nav">
+  	<div class="overlay js-overlay" style="background: #4d4d4d"></div>
+	<div class="btnctn js-mobile-btnctn">
+  		<div class="slider-trigger list" q-on="click: openSlider(e)"><i class="icon icon-sort"></i></div>
+	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+				<img src="/assets/photo.png" class="js-avatar">
+			</div>
+			<hgroup>
+			  <h1 class="header-author js-header-author">小谨的随笔</h1>
+			</hgroup>
+			
+			<p class="header-subtitle"><i class="icon icon-quo-left"></i>热爱工作、享受生活、专注技术<i class="icon icon-quo-right"></i></p>
+			
+			
+			
+				
+			
+			
+			
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="weixin" target="_blank" href="/shijin_ysj" title="weixin"><i class="icon-weixin"></i></a>
+			        
+						<a class="mail" target="_blank" href="/yangshijin@vip.qq.com" title="mail"><i class="icon-mail"></i></a>
+			        
+				</div>
+			</nav>
+
+			<nav class="header-menu js-header-menu">
+				<ul style="width: 50%">
+				
+				
+					<li style="width: 100%"><a href="/">主页</a></li>
+		        
+				</ul>
+			</nav>
+		</header>				
+	</div>
+	<div class="mobile-mask" style="display:none" q-show="isShow"></div>
+</nav>
+
+      <div id="wrapper" class="body-wrap">
+        <div class="menu-l">
+          <div class="canvas-wrap">
+            <canvas data-colors="#eaeaea" data-sectionHeight="100" data-contentId="js-content" id="myCanvas1" class="anm-canvas"></canvas>
+          </div>
+          <div id="js-content" class="content-ll">
+            <article id="post-基于python3-x-opencv3的图像学轮廓方法车牌粗定位" class="article article-type-post " itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      基于python3.x + opencv3的图像学轮廓方法车牌粗定位
+    </h1>
+  
+
+        
+        <a href="/2017/04/11/基于python3-x-opencv3的图像学轮廓方法车牌粗定位/" class="archive-article-date">
+  	<time datetime="2017-04-11T14:22:59.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2017-04-11</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h5 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h5><p>　　最近准备迈入机器学习的大门，有经验的同事推荐我先从简单的小项目做起，于是乎他推荐了车牌识别的项目，然后就开始了相关的研究，车牌首先是从一个大图中先定位出来，然后才能识别其中的车牌号码，车牌怎么从一张大的图片就定位出来呢，看了基于c++的开源项目easyPR的作者博客，按着他的思路，可以先从图像学的角度来定位车牌。<br><a id="more"></a></p>
+<h5 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h5><ol>
+<li>由于在选型的时候，选了最近很火的谷歌的开源深度学习框架“TensorFlow”,又由于本人是苦逼的windows党，TensorFlow目前最新的版本，需要制定python版本3.5，于是第一个需要安装的就是python3.5啦。</li>
+<li>另外一个就是基于python安装的opencv3</li>
+</ol>
+<h5 id="定位思路（基于轮廓定位）"><a href="#定位思路（基于轮廓定位）" class="headerlink" title="定位思路（基于轮廓定位）"></a>定位思路（基于轮廓定位）</h5><h6 id="1-图片灰度化（将三元色的图片转换为只有一个灰度通道的图片，处理起来更容易）"><a href="#1-图片灰度化（将三元色的图片转换为只有一个灰度通道的图片，处理起来更容易）" class="headerlink" title="1.图片灰度化（将三元色的图片转换为只有一个灰度通道的图片，处理起来更容易）"></a>1.图片灰度化（将三元色的图片转换为只有一个灰度通道的图片，处理起来更容易）</h6><h6 id="2-图片高斯模糊（去除干扰的噪声，easyPR的作者思路是先高斯模糊再灰度化）"><a href="#2-图片高斯模糊（去除干扰的噪声，easyPR的作者思路是先高斯模糊再灰度化）" class="headerlink" title="2.图片高斯模糊（去除干扰的噪声，easyPR的作者思路是先高斯模糊再灰度化）"></a>2.图片高斯模糊（去除干扰的噪声，easyPR的作者思路是先高斯模糊再灰度化）</h6><h6 id="3-Sobel算子处理"><a href="#3-Sobel算子处理" class="headerlink" title="3.Sobel算子处理"></a>3.Sobel算子处理</h6><h6 id="4-图像二值化"><a href="#4-图像二值化" class="headerlink" title="4.图像二值化"></a>4.图像二值化</h6><h6 id="5-闭操作"><a href="#5-闭操作" class="headerlink" title="5.闭操作"></a>5.闭操作</h6><h6 id="6-腐蚀-gt-膨胀"><a href="#6-腐蚀-gt-膨胀" class="headerlink" title="6.腐蚀-&gt;膨胀"></a>6.腐蚀-&gt;膨胀</h6><h6 id="7-取轮廓列表"><a href="#7-取轮廓列表" class="headerlink" title="7.取轮廓列表"></a>7.取轮廓列表</h6><h6 id="8-基于车牌形状特性筛选"><a href="#8-基于车牌形状特性筛选" class="headerlink" title="8.基于车牌形状特性筛选"></a>8.基于车牌形状特性筛选</h6><p>上面七个步骤大致就是我初步实现的思路，借鉴了easyPR的作者的前部分思路，当然这只是粗定位，后面还需要很多需要优化，但作为初学者，第一步肯定是先从简单的来实现啦。</p>
+<h6 id="1-图片灰度化"><a href="#1-图片灰度化" class="headerlink" title="1. 图片灰度化"></a>1. 图片灰度化</h6><p>  这一步使用python+opencv实现起来非常简单，有两种方法，第一种是加载图片的时候加一个参数，直接灰度化，第二种是加载后另外调用opencv的API-&gt;cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)来进行灰度化，居然方法细节可以直接看方法定义</p>
+<h6 id="2-高斯模糊"><a href="#2-高斯模糊" class="headerlink" title="2. 高斯模糊"></a>2. 高斯模糊</h6><p>　　高斯模糊，也称高斯平滑，根据高斯曲线调节像素色值，它是有选择地模糊图像。说得直白一点，就是高斯模糊能够把某一点周围的像素色值按高斯曲线统计起来，采用数学上加权平均的计算方法得到这条曲线的色值，最后能够留下人物的轮廓，即曲线．具体的原理介绍各位可以自己google一下。<br>　　opencv也提供了高斯模糊的API-&gt;cv2.GaussianBlur(),具体参数含义可以看一看API手册，这里只讲第二个参数，即模糊范围，这个范围分为x、y方向，我选择了3-3作为模糊的计算范围。</p>
+<h6 id="3-sobel算子处理"><a href="#3-sobel算子处理" class="headerlink" title="3. sobel算子处理"></a>3. sobel算子处理</h6><p>　　sobel算子是一种图像处理算法，主要用作边缘检测.车牌的特征非常适合用sobel算子来做处理，通过sobel算子能清晰的识别出车牌的边缘，字母的边缘，得出的灰度图如下所示：<br><img src="/img/sobel.jpg" alt=""></p>
+<h6 id="4-二值化"><a href="#4-二值化" class="headerlink" title="4. 二值化"></a>4. 二值化</h6><p> 　二值化的原理很简单，就是对一张灰度图像，基于某个阈值，当大于这个阈值的时候，置为1，小于这个阈值的时候置为0，比如我设置一个阈值为150，那么当这张灰度图的图片的某个像素点的值为170，那么二值化操作后的值就是1，也就是颜色通道的最大值255。为什么要进行二值化呢，和灰度化一样，进一步简化图像的表达，让之后的形态学图像处理更加简单。二值化后的图像如下：<br> <img src="/img/binary.jpg" alt=""></p>
+<h6 id="5-闭操作-1"><a href="#5-闭操作-1" class="headerlink" title="5. 闭操作"></a>5. 闭操作</h6><p>　　要了解闭操作，首先要了解图像学的腐蚀、膨胀，什么是图像的膨胀处理呢？通俗点来讲，就是有一个二维的矩阵定义，比如3*3,然后对一个图像进行像素点遍历，基于每一个像素点作为矩阵中心点，然后对这个像素点的周边被矩阵包含的像素点做一个局部最大值的替换，腐蚀操作则反之，取局部最小值。</p>
+<p>　　那么闭操作的原理其实就是对图像先进行膨胀操作，再进行腐蚀操作，这样有什么作用呢，相信大家也看到二值化后的图像，车牌的字符边缘很清晰的展现出来，但是我们这是要根据车牌轮廓来做粗定位的，那么我们要让车牌区域变成一个白色的矩形，闭操作第一步的膨胀操作，将车牌字符与字符之间的空白连接起来，想成一个基于车牌区域往外扩展一点的矩形区域，第二步闭操作，将由于膨胀操作使得车牌矩形往外扩展的区域腐蚀掉。</p>
+<p>　　这个时候需要讲一下，这里的闭操作的参数之一，闭操作的像素范围，即进行局部极值计算的二维矩阵定义，由于车牌的特性，我们定义的矩阵最好是按照车牌的长宽比例来进行处理，大约是2.5-5.5这个比例内的参数调优，我自己试了一下，4左右的比例应该效果是最好的，另外就是范围的大小，由于要定位的图片不一，因此最好是根据你当前的图片库的平均大小来做确定，我自己网上找图片试了一下，大致是20左右的x像素点，4-5左右的y像素点。处理结果如下：<br><img src="/img/closed.jpg" alt=""></p>
+<h6 id="6-腐蚀-gt-膨胀-1"><a href="#6-腐蚀-gt-膨胀-1" class="headerlink" title="6. 腐蚀-&gt;膨胀"></a>6. 腐蚀-&gt;膨胀</h6><p>　　细心的朋友应该发现了，上面闭操作之后的图片，还是有一些小的白点细长的白点存留，这些俗称为噪点，也就是干扰项，这个时候需要进行腐蚀操作，将细小的点给腐蚀掉，然后腐蚀掉肯定车牌区域的大小会受影响，因此后面要膨胀处理，来补偿因为处理掉细节而腐蚀掉的区域。其实腐蚀操作也就是开操作，这个操作一般也就是用来处理掉细小的噪点的。那这里我为什么要分开呢，因为要进行车牌定位的图片的噪点往往进行一轮腐蚀没办法完全腐蚀掉，而闭操作只是进行一轮腐蚀后就进行膨胀了，这样没有完全腐蚀掉的细节又重新膨胀回来了。因此分开操作，opencv的腐蚀、膨胀方法，有个参数可以定义进行几轮处理，因此这里可以根据图片的情况，具体调优。调优后的图片如下：<br><img src="/img/dilation.jpg" alt=""></p>
+<h6 id="7-取轮廓列表-1"><a href="#7-取轮廓列表-1" class="headerlink" title="7. 取轮廓列表"></a>7. 取轮廓列表</h6><p>　　找轮廓列表其实就是讲上面处理后的二值化图像的白色部分筛选出来，opencv有现成的API，cv2. cv2.findContours()</p>
+<h6 id="8-筛选"><a href="#8-筛选" class="headerlink" title="8. 筛选"></a>8. 筛选</h6><p>　　找到所有的轮廓之后，就要基于车牌的特性进行筛选了，首先将轮廓转为一个矩形，然后将面积小的过滤掉，然后根据车牌的形态特性，即长宽比例筛选出正确的车牌矩形，当然，这里有可能筛选不到任何的矩形，也有可能筛选到多个矩形出来。比如本图的例子图片，就筛选出了两个矩形出来，如下(我用绿色的线画出来了)：<br><img src="/img/lunkuo-result.jpg" alt=""></p>
+<p>这里的只是初步将车牌区域定位出来，甚至可能定位出多个不是车牌的区域，后面需要继续优化。</p>
+<h6 id="实现代码如下："><a href="#实现代码如下：" class="headerlink" title="实现代码如下："></a>实现代码如下：</h6><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> cv2</div><div class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</div><div class="line"></div><div class="line">minPlateRatio = <span class="number">2.5</span> <span class="comment"># 车牌最小比例</span></div><div class="line">maxPlateRatio = <span class="number">5</span>   <span class="comment"># 车牌最大比例</span></div><div class="line"></div><div class="line"><span class="comment"># 图像处理</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">imageProcess</span><span class="params">(gray)</span>:</span></div><div class="line">    <span class="comment"># 高斯平滑</span></div><div class="line">    gaussian = cv2.GaussianBlur(gray, (<span class="number">3</span>, <span class="number">3</span>), <span class="number">0</span>, <span class="number">0</span>, cv2.BORDER_DEFAULT)</div><div class="line"></div><div class="line">    <span class="comment"># Sobel算子，X方向求梯度</span></div><div class="line">    sobel = cv2.convertScaleAbs(cv2.Sobel(gaussian, cv2.CV_16S, <span class="number">1</span>, <span class="number">0</span>, ksize=<span class="number">3</span>))</div><div class="line"></div><div class="line">    <span class="comment"># 二值化</span></div><div class="line">    ret, binary = cv2.threshold(sobel, <span class="number">150</span>, <span class="number">255</span>, cv2.THRESH_BINARY)</div><div class="line"></div><div class="line">    <span class="comment"># 对二值化后的图像进行闭操作</span></div><div class="line">    element = cv2.getStructuringElement(cv2.MORPH_RECT, (<span class="number">18</span>, <span class="number">4</span>))</div><div class="line">    closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, element)</div><div class="line"></div><div class="line">    <span class="comment"># 再通过腐蚀-&gt;膨胀 去掉比较小的噪点</span></div><div class="line">    erosion = cv2.erode(closed, <span class="keyword">None</span>, iterations=<span class="number">2</span>)</div><div class="line">    dilation = cv2.dilate(erosion, <span class="keyword">None</span>, iterations=<span class="number">2</span>)</div><div class="line"></div><div class="line">    <span class="comment"># 返回最终图像</span></div><div class="line">    <span class="keyword">return</span> dilation</div><div class="line"></div><div class="line"><span class="comment"># 找到符合车牌形状的矩形</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">findPlateNumberRegion</span><span class="params">(img)</span>:</span></div><div class="line">    region = []</div><div class="line">    <span class="comment"># 查找外框轮廓</span></div><div class="line">    contours_img, contours, hierarchy = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)</div><div class="line">    print(<span class="string">"contours lenth is :%s"</span> % (len(contours)))</div><div class="line">    <span class="comment"># 筛选面积小的</span></div><div class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(len(contours)):</div><div class="line">        cnt = contours[i]</div><div class="line">        <span class="comment"># 计算轮廓面积</span></div><div class="line">        area = cv2.contourArea(cnt)</div><div class="line"></div><div class="line">        <span class="comment"># 面积小的忽略</span></div><div class="line">        <span class="keyword">if</span> area &lt; <span class="number">2000</span>:</div><div class="line">            <span class="keyword">continue</span></div><div class="line"></div><div class="line">        <span class="comment"># 转换成对应的矩形（最小）</span></div><div class="line">        rect = cv2.minAreaRect(cnt)</div><div class="line">        <span class="comment"># print("rect is:%s" % &#123;rect&#125;)</span></div><div class="line"></div><div class="line">        <span class="comment"># 根据矩形转成box类型，并int化</span></div><div class="line">        box = np.int32(cv2.boxPoints(rect))</div><div class="line"></div><div class="line">        <span class="comment"># 计算高和宽</span></div><div class="line">        height = abs(box[<span class="number">0</span>][<span class="number">1</span>] - box[<span class="number">2</span>][<span class="number">1</span>])</div><div class="line">        width = abs(box[<span class="number">0</span>][<span class="number">0</span>] - box[<span class="number">2</span>][<span class="number">0</span>])</div><div class="line">        <span class="comment"># 正常情况车牌长高比在2.7-5之间,那种两行的有可能小于2.5，这里不考虑</span></div><div class="line">        ratio = float(width) / float(height)</div><div class="line">        <span class="keyword">if</span> ratio &gt; maxPlateRatio <span class="keyword">or</span> ratio &lt; minPlateRatio:</div><div class="line">            <span class="keyword">continue</span></div><div class="line">        <span class="comment"># 符合条件，加入到轮廓集合</span></div><div class="line">        region.append(box)</div><div class="line">    <span class="keyword">return</span> region</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">detect</span><span class="params">(img)</span>:</span></div><div class="line">  <span class="comment"># 转化成灰度图</span></div><div class="line">  gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)</div><div class="line">  <span class="comment"># 形态学变换的处理</span></div><div class="line">  dilation = imageProcess(gray)</div><div class="line">  <span class="comment"># 查找车牌区域</span></div><div class="line">  region = findPlateNumberRegion(dilation)</div><div class="line">  <span class="comment"># 默认取第一个</span></div><div class="line">  box = region[<span class="number">0</span>]</div><div class="line">  <span class="comment">#在原图画出轮廓</span></div><div class="line">  cv2.drawContours(img, [box], <span class="number">0</span>, (<span class="number">0</span>, <span class="number">255</span>, <span class="number">0</span>), <span class="number">2</span>)</div><div class="line">  <span class="comment"># 找出box四个角的x点，y点，构成数组并排序</span></div><div class="line">  ys = [box[<span class="number">0</span>, <span class="number">1</span>], box[<span class="number">1</span>, <span class="number">1</span>], box[<span class="number">2</span>, <span class="number">1</span>], box[<span class="number">3</span>, <span class="number">1</span>]]</div><div class="line">  xs = [box[<span class="number">0</span>, <span class="number">0</span>], box[<span class="number">1</span>, <span class="number">0</span>], box[<span class="number">2</span>, <span class="number">0</span>], box[<span class="number">3</span>, <span class="number">0</span>]]</div><div class="line">  ys_sorted_index = np.argsort(ys)</div><div class="line">  xs_sorted_index = np.argsort(xs)</div><div class="line">  <span class="comment"># 取最小的x，y 和最大的x，y 构成切割矩形对角线</span></div><div class="line">  min_x = box[xs_sorted_index[<span class="number">0</span>], <span class="number">0</span>]</div><div class="line">  max_x = box[xs_sorted_index[<span class="number">3</span>], <span class="number">0</span>]</div><div class="line">  min_y = box[ys_sorted_index[<span class="number">0</span>], <span class="number">1</span>]</div><div class="line">  max_y = box[ys_sorted_index[<span class="number">3</span>], <span class="number">1</span>]</div><div class="line"></div><div class="line">  <span class="comment"># 切割图片，其实就是取图片二维数组的在x、y维度上的最小minX,minY 到最大maxX,maxY区间的子数组</span></div><div class="line">  img_plate = img[min_y:max_y, min_x:max_x]</div><div class="line">  <span class="keyword">return</span> img_plate</div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</div><div class="line">        imagePath = <span class="string">'d:\\CarImage\\car_04.jpg'</span> <span class="comment"># 图片路径</span></div><div class="line">        img = cv2.imread(imagePath)</div><div class="line">        img = detect(img)</div><div class="line">        cv2.imshow(<span class="string">"img"</span>,img)</div><div class="line">        cv2.waitKey(<span class="number">0</span>)</div></pre></td></tr></table></figure>
+
+      
+
+      
+        <div class="page-reward">
+          <a href="javascript:;" class="page-reward-btn tooltip-top">
+            <div class="tooltip tooltip-east">
+            <span class="tooltip-item">
+              赏
+            </span>
+            <span class="tooltip-content">
+              <span class="tooltip-text">
+                <span class="tooltip-inner">
+                  <p class="reward-p"><i class="icon icon-quo-left"></i>谢谢你请我吃糖果<i class="icon icon-quo-right"></i></p>
+                  <div class="reward-box">
+                    
+                    
+                  </div>
+                </span>
+              </span>
+            </span>
+          </div>
+          </a>
+        </div>
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">python</a>
+        		</li>
+      		 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">opencv</a>
+        		</li>
+      		 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">车牌识别</a>
+        		</li>
+      		 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">机器学习</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+
+      
+
+      
+        
+<div class="share-btn share-icons tooltip-left">
+  <div class="tooltip tooltip-east">
+    <span class="tooltip-item">
+      <a href="javascript:;" class="share-sns share-outer">
+        <i class="icon icon-share"></i>
+      </a>
+    </span>
+    <span class="tooltip-content">
+      <div class="share-wrap">
+        <div class="share-icons">
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="icon icon-weibo"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="icon icon-weixin"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="icon icon-qq"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="icon icon-douban"></i>
+          </a>
+          <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a>
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="icon icon-facebook"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="icon icon-twitter"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="icon icon-google"></i>
+          </a>
+        </div>
+      </div>
+    </span>
+  </div>
+</div>
+
+<div class="page-modal wx-share js-wx-box">
+    <a class="close js-modal-close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="http://s.jiathis.com/qrcode.php?url=http://qgxiaojin.com/2017/04/11/基于python3-x-opencv3的图像学轮廓方法车牌粗定位/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div class="mask js-mask"></div>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+  
+<nav id="article-nav">
+  
+    <a href="/2017/04/15/基于python3-x-opencv3的hsv颜色-轮廓法车牌粗定位/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          基于python3.x+opencv3的hsv颜色+轮廓法车牌粗定位
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2017/04/06/设计杂谈-一种链式生命周期管理设计/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">设计杂谈:一种链式生命周期管理设计</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
+
+
+
+
+
+  
+    <div class="duoshuo"></div>
+  
+
+
+
+
+          </div>
+        </div>
+      </div>
+      <footer id="footer">
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2017 小谨的随笔
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/litten/hexo-theme-yilia" target="_blank">Yilia</a> by Litten
+      	</div>
+    </div>
+  </div>
+</footer>
+    </div>
+    <script>
+	var yiliaConfig = {
+		mathjax: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: true,
+		root: "/",
+		innerArchive: true,
+		showTags: true
+	}
+</script>
+
+<script>!function(t){function n(r){if(e[r])return e[r].exports;var o=e[r]={exports:{},id:r,loaded:!1};return t[r].call(o.exports,o,o.exports,n),o.loaded=!0,o.exports}var e={};return n.m=t,n.c=e,n.p="./",n(0)}([function(t,n,e){"use strict";function r(t){return t&&t.__esModule?t:{default:t}}function o(t,n){var e=/\/|index.html/g;return t.replace(e,"")===n.replace(e,"")}function i(){for(var t=document.querySelectorAll(".js-header-menu li a"),n=window.location.pathname,e=0,r=t.length;e<r;e++){var i=t[e];o(n,i.getAttribute("href"))&&(0,d.default)(i,"active")}}function u(t){for(var n=t.offsetLeft,e=t.offsetParent;null!==e;)n+=e.offsetLeft,e=e.offsetParent;return n}function f(t){for(var n=t.offsetTop,e=t.offsetParent;null!==e;)n+=e.offsetTop,e=e.offsetParent;return n}function c(t,n,e,r,o){var i=u(t),c=f(t)-n;if(c-e<=o){var a=t.$newDom;a||(a=t.cloneNode(!0),(0,h.default)(t,a),t.$newDom=a,a.style.position="fixed",a.style.top=(e||c)+"px",a.style.left=i+"px",a.style.zIndex=r||2,a.style.width="100%",a.style.color="#fff"),a.style.visibility="visible",t.style.visibility="hidden"}else{t.style.visibility="visible";var s=t.$newDom;s&&(s.style.visibility="hidden")}}function a(){var t=document.querySelector(".js-overlay"),n=document.querySelector(".js-header-menu");c(t,document.body.scrollTop,-63,2,0),c(n,document.body.scrollTop,1,3,0)}function s(){document.querySelector("#container").addEventListener("scroll",function(t){a()}),window.addEventListener("scroll",function(t){a()}),a()}function l(){x.default.versions.mobile&&window.screen.width<800&&(i(),s())}var p=e(71),d=r(p),v=e(72),y=(r(v),e(84)),h=r(y),b=e(69),x=r(b),m=e(75),g=r(m),w=e(70);l(),(0,w.addLoadEvent)(function(){g.default.init()}),t.exports={}},function(t,n){var e=t.exports="undefined"!=typeof window&&window.Math==Math?window:"undefined"!=typeof self&&self.Math==Math?self:Function("return this")();"number"==typeof __g&&(__g=e)},function(t,n){var e={}.hasOwnProperty;t.exports=function(t,n){return e.call(t,n)}},function(t,n,e){var r=e(49),o=e(15);t.exports=function(t){return r(o(t))}},function(t,n,e){t.exports=!e(8)(function(){return 7!=Object.defineProperty({},"a",{get:function(){return 7}}).a})},function(t,n,e){var r=e(6),o=e(12);t.exports=e(4)?function(t,n,e){return r.f(t,n,o(1,e))}:function(t,n,e){return t[n]=e,t}},function(t,n,e){var r=e(10),o=e(30),i=e(24),u=Object.defineProperty;n.f=e(4)?Object.defineProperty:function(t,n,e){if(r(t),n=i(n,!0),r(e),o)try{return u(t,n,e)}catch(t){}if("get"in e||"set"in e)throw TypeError("Accessors not supported!");return"value"in e&&(t[n]=e.value),t}},function(t,n,e){var r=e(22)("wks"),o=e(13),i=e(1).Symbol,u="function"==typeof i,f=t.exports=function(t){return r[t]||(r[t]=u&&i[t]||(u?i:o)("Symbol."+t))};f.store=r},function(t,n){t.exports=function(t){try{return!!t()}catch(t){return!0}}},function(t,n,e){var r=e(35),o=e(16);t.exports=Object.keys||function(t){return r(t,o)}},function(t,n,e){var r=e(11);t.exports=function(t){if(!r(t))throw TypeError(t+" is not an object!");return t}},function(t,n){t.exports=function(t){return"object"==typeof t?null!==t:"function"==typeof t}},function(t,n){t.exports=function(t,n){return{enumerable:!(1&t),configurable:!(2&t),writable:!(4&t),value:n}}},function(t,n){var e=0,r=Math.random();t.exports=function(t){return"Symbol(".concat(void 0===t?"":t,")_",(++e+r).toString(36))}},function(t,n){var e=t.exports={version:"2.4.0"};"number"==typeof __e&&(__e=e)},function(t,n){t.exports=function(t){if(void 0==t)throw TypeError("Can't call method on  "+t);return t}},function(t,n){t.exports="constructor,hasOwnProperty,isPrototypeOf,propertyIsEnumerable,toLocaleString,toString,valueOf".split(",")},function(t,n){t.exports={}},function(t,n){t.exports=!0},function(t,n){n.f={}.propertyIsEnumerable},function(t,n,e){var r=e(6).f,o=e(2),i=e(7)("toStringTag");t.exports=function(t,n,e){t&&!o(t=e?t:t.prototype,i)&&r(t,i,{configurable:!0,value:n})}},function(t,n,e){var r=e(22)("keys"),o=e(13);t.exports=function(t){return r[t]||(r[t]=o(t))}},function(t,n,e){var r=e(1),o="__core-js_shared__",i=r[o]||(r[o]={});t.exports=function(t){return i[t]||(i[t]={})}},function(t,n){var e=Math.ceil,r=Math.floor;t.exports=function(t){return isNaN(t=+t)?0:(t>0?r:e)(t)}},function(t,n,e){var r=e(11);t.exports=function(t,n){if(!r(t))return t;var e,o;if(n&&"function"==typeof(e=t.toString)&&!r(o=e.call(t)))return o;if("function"==typeof(e=t.valueOf)&&!r(o=e.call(t)))return o;if(!n&&"function"==typeof(e=t.toString)&&!r(o=e.call(t)))return o;throw TypeError("Can't convert object to primitive value")}},function(t,n,e){var r=e(1),o=e(14),i=e(18),u=e(26),f=e(6).f;t.exports=function(t){var n=o.Symbol||(o.Symbol=i?{}:r.Symbol||{});"_"==t.charAt(0)||t in n||f(n,t,{value:u.f(t)})}},function(t,n,e){n.f=e(7)},function(t,n,e){var r=e(1),o=e(14),i=e(46),u=e(5),f="prototype",c=function(t,n,e){var a,s,l,p=t&c.F,d=t&c.G,v=t&c.S,y=t&c.P,h=t&c.B,b=t&c.W,x=d?o:o[n]||(o[n]={}),m=x[f],g=d?r:v?r[n]:(r[n]||{})[f];d&&(e=n);for(a in e)s=!p&&g&&void 0!==g[a],s&&a in x||(l=s?g[a]:e[a],x[a]=d&&"function"!=typeof g[a]?e[a]:h&&s?i(l,r):b&&g[a]==l?function(t){var n=function(n,e,r){if(this instanceof t){switch(arguments.length){case 0:return new t;case 1:return new t(n);case 2:return new t(n,e)}return new t(n,e,r)}return t.apply(this,arguments)};return n[f]=t[f],n}(l):y&&"function"==typeof l?i(Function.call,l):l,y&&((x.virtual||(x.virtual={}))[a]=l,t&c.R&&m&&!m[a]&&u(m,a,l)))};c.F=1,c.G=2,c.S=4,c.P=8,c.B=16,c.W=32,c.U=64,c.R=128,t.exports=c},function(t,n){var e={}.toString;t.exports=function(t){return e.call(t).slice(8,-1)}},function(t,n,e){var r=e(11),o=e(1).document,i=r(o)&&r(o.createElement);t.exports=function(t){return i?o.createElement(t):{}}},function(t,n,e){t.exports=!e(4)&&!e(8)(function(){return 7!=Object.defineProperty(e(29)("div"),"a",{get:function(){return 7}}).a})},function(t,n,e){"use strict";var r=e(18),o=e(27),i=e(36),u=e(5),f=e(2),c=e(17),a=e(51),s=e(20),l=e(58),p=e(7)("iterator"),d=!([].keys&&"next"in[].keys()),v="@@iterator",y="keys",h="values",b=function(){return this};t.exports=function(t,n,e,x,m,g,w){a(e,n,x);var O,S,_,j=function(t){if(!d&&t in A)return A[t];switch(t){case y:return function(){return new e(this,t)};case h:return function(){return new e(this,t)}}return function(){return new e(this,t)}},P=n+" Iterator",E=m==h,M=!1,A=t.prototype,T=A[p]||A[v]||m&&A[m],L=T||j(m),N=m?E?j("entries"):L:void 0,C="Array"==n?A.entries||T:T;if(C&&(_=l(C.call(new t)),_!==Object.prototype&&(s(_,P,!0),r||f(_,p)||u(_,p,b))),E&&T&&T.name!==h&&(M=!0,L=function(){return T.call(this)}),r&&!w||!d&&!M&&A[p]||u(A,p,L),c[n]=L,c[P]=b,m)if(O={values:E?L:j(h),keys:g?L:j(y),entries:N},w)for(S in O)S in A||i(A,S,O[S]);else o(o.P+o.F*(d||M),n,O);return O}},function(t,n,e){var r=e(10),o=e(55),i=e(16),u=e(21)("IE_PROTO"),f=function(){},c="prototype",a=function(){var t,n=e(29)("iframe"),r=i.length,o="<",u=">";for(n.style.display="none",e(48).appendChild(n),n.src="javascript:",t=n.contentWindow.document,t.open(),t.write(o+"script"+u+"document.F=Object"+o+"/script"+u),t.close(),a=t.F;r--;)delete a[c][i[r]];return a()};t.exports=Object.create||function(t,n){var e;return null!==t?(f[c]=r(t),e=new f,f[c]=null,e[u]=t):e=a(),void 0===n?e:o(e,n)}},function(t,n,e){var r=e(35),o=e(16).concat("length","prototype");n.f=Object.getOwnPropertyNames||function(t){return r(t,o)}},function(t,n){n.f=Object.getOwnPropertySymbols},function(t,n,e){var r=e(2),o=e(3),i=e(45)(!1),u=e(21)("IE_PROTO");t.exports=function(t,n){var e,f=o(t),c=0,a=[];for(e in f)e!=u&&r(f,e)&&a.push(e);for(;n.length>c;)r(f,e=n[c++])&&(~i(a,e)||a.push(e));return a}},function(t,n,e){t.exports=e(5)},function(t,n,e){var r=e(15);t.exports=function(t){return Object(r(t))}},function(t,n,e){t.exports={default:e(41),__esModule:!0}},function(t,n,e){t.exports={default:e(42),__esModule:!0}},function(t,n,e){"use strict";function r(t){return t&&t.__esModule?t:{default:t}}n.__esModule=!0;var o=e(39),i=r(o),u=e(38),f=r(u),c="function"==typeof f.default&&"symbol"==typeof i.default?function(t){return typeof t}:function(t){return t&&"function"==typeof f.default&&t.constructor===f.default&&t!==f.default.prototype?"symbol":typeof t};n.default="function"==typeof f.default&&"symbol"===c(i.default)?function(t){return"undefined"==typeof t?"undefined":c(t)}:function(t){return t&&"function"==typeof f.default&&t.constructor===f.default&&t!==f.default.prototype?"symbol":"undefined"==typeof t?"undefined":c(t)}},function(t,n,e){e(65),e(63),e(66),e(67),t.exports=e(14).Symbol},function(t,n,e){e(64),e(68),t.exports=e(26).f("iterator")},function(t,n){t.exports=function(t){if("function"!=typeof t)throw TypeError(t+" is not a function!");return t}},function(t,n){t.exports=function(){}},function(t,n,e){var r=e(3),o=e(61),i=e(60);t.exports=function(t){return function(n,e,u){var f,c=r(n),a=o(c.length),s=i(u,a);if(t&&e!=e){for(;a>s;)if(f=c[s++],f!=f)return!0}else for(;a>s;s++)if((t||s in c)&&c[s]===e)return t||s||0;return!t&&-1}}},function(t,n,e){var r=e(43);t.exports=function(t,n,e){if(r(t),void 0===n)return t;switch(e){case 1:return function(e){return t.call(n,e)};case 2:return function(e,r){return t.call(n,e,r)};case 3:return function(e,r,o){return t.call(n,e,r,o)}}return function(){return t.apply(n,arguments)}}},function(t,n,e){var r=e(9),o=e(34),i=e(19);t.exports=function(t){var n=r(t),e=o.f;if(e)for(var u,f=e(t),c=i.f,a=0;f.length>a;)c.call(t,u=f[a++])&&n.push(u);return n}},function(t,n,e){t.exports=e(1).document&&document.documentElement},function(t,n,e){var r=e(28);t.exports=Object("z").propertyIsEnumerable(0)?Object:function(t){return"String"==r(t)?t.split(""):Object(t)}},function(t,n,e){var r=e(28);t.exports=Array.isArray||function(t){return"Array"==r(t)}},function(t,n,e){"use strict";var r=e(32),o=e(12),i=e(20),u={};e(5)(u,e(7)("iterator"),function(){return this}),t.exports=function(t,n,e){t.prototype=r(u,{next:o(1,e)}),i(t,n+" Iterator")}},function(t,n){t.exports=function(t,n){return{value:n,done:!!t}}},function(t,n,e){var r=e(9),o=e(3);t.exports=function(t,n){for(var e,i=o(t),u=r(i),f=u.length,c=0;f>c;)if(i[e=u[c++]]===n)return e}},function(t,n,e){var r=e(13)("meta"),o=e(11),i=e(2),u=e(6).f,f=0,c=Object.isExtensible||function(){return!0},a=!e(8)(function(){return c(Object.preventExtensions({}))}),s=function(t){u(t,r,{value:{i:"O"+ ++f,w:{}}})},l=function(t,n){if(!o(t))return"symbol"==typeof t?t:("string"==typeof t?"S":"P")+t;if(!i(t,r)){if(!c(t))return"F";if(!n)return"E";s(t)}return t[r].i},p=function(t,n){if(!i(t,r)){if(!c(t))return!0;if(!n)return!1;s(t)}return t[r].w},d=function(t){return a&&v.NEED&&c(t)&&!i(t,r)&&s(t),t},v=t.exports={KEY:r,NEED:!1,fastKey:l,getWeak:p,onFreeze:d}},function(t,n,e){var r=e(6),o=e(10),i=e(9);t.exports=e(4)?Object.defineProperties:function(t,n){o(t);for(var e,u=i(n),f=u.length,c=0;f>c;)r.f(t,e=u[c++],n[e]);return t}},function(t,n,e){var r=e(19),o=e(12),i=e(3),u=e(24),f=e(2),c=e(30),a=Object.getOwnPropertyDescriptor;n.f=e(4)?a:function(t,n){if(t=i(t),n=u(n,!0),c)try{return a(t,n)}catch(t){}if(f(t,n))return o(!r.f.call(t,n),t[n])}},function(t,n,e){var r=e(3),o=e(33).f,i={}.toString,u="object"==typeof window&&window&&Object.getOwnPropertyNames?Object.getOwnPropertyNames(window):[],f=function(t){try{return o(t)}catch(t){return u.slice()}};t.exports.f=function(t){return u&&"[object Window]"==i.call(t)?f(t):o(r(t))}},function(t,n,e){var r=e(2),o=e(37),i=e(21)("IE_PROTO"),u=Object.prototype;t.exports=Object.getPrototypeOf||function(t){return t=o(t),r(t,i)?t[i]:"function"==typeof t.constructor&&t instanceof t.constructor?t.constructor.prototype:t instanceof Object?u:null}},function(t,n,e){var r=e(23),o=e(15);t.exports=function(t){return function(n,e){var i,u,f=String(o(n)),c=r(e),a=f.length;return c<0||c>=a?t?"":void 0:(i=f.charCodeAt(c),i<55296||i>56319||c+1===a||(u=f.charCodeAt(c+1))<56320||u>57343?t?f.charAt(c):i:t?f.slice(c,c+2):(i-55296<<10)+(u-56320)+65536)}}},function(t,n,e){var r=e(23),o=Math.max,i=Math.min;t.exports=function(t,n){return t=r(t),t<0?o(t+n,0):i(t,n)}},function(t,n,e){var r=e(23),o=Math.min;t.exports=function(t){return t>0?o(r(t),9007199254740991):0}},function(t,n,e){"use strict";var r=e(44),o=e(52),i=e(17),u=e(3);t.exports=e(31)(Array,"Array",function(t,n){this._t=u(t),this._i=0,this._k=n},function(){var t=this._t,n=this._k,e=this._i++;return!t||e>=t.length?(this._t=void 0,o(1)):"keys"==n?o(0,e):"values"==n?o(0,t[e]):o(0,[e,t[e]])},"values"),i.Arguments=i.Array,r("keys"),r("values"),r("entries")},function(t,n){},function(t,n,e){"use strict";var r=e(59)(!0);e(31)(String,"String",function(t){this._t=String(t),this._i=0},function(){var t,n=this._t,e=this._i;return e>=n.length?{value:void 0,done:!0}:(t=r(n,e),this._i+=t.length,{value:t,done:!1})})},function(t,n,e){"use strict";var r=e(1),o=e(2),i=e(4),u=e(27),f=e(36),c=e(54).KEY,a=e(8),s=e(22),l=e(20),p=e(13),d=e(7),v=e(26),y=e(25),h=e(53),b=e(47),x=e(50),m=e(10),g=e(3),w=e(24),O=e(12),S=e(32),_=e(57),j=e(56),P=e(6),E=e(9),M=j.f,A=P.f,T=_.f,L=r.Symbol,N=r.JSON,C=N&&N.stringify,k="prototype",F=d("_hidden"),q=d("toPrimitive"),I={}.propertyIsEnumerable,B=s("symbol-registry"),D=s("symbols"),W=s("op-symbols"),H=Object[k],K="function"==typeof L,R=r.QObject,J=!R||!R[k]||!R[k].findChild,U=i&&a(function(){return 7!=S(A({},"a",{get:function(){return A(this,"a",{value:7}).a}})).a})?function(t,n,e){var r=M(H,n);r&&delete H[n],A(t,n,e),r&&t!==H&&A(H,n,r)}:A,G=function(t){var n=D[t]=S(L[k]);return n._k=t,n},$=K&&"symbol"==typeof L.iterator?function(t){return"symbol"==typeof t}:function(t){return t instanceof L},z=function(t,n,e){return t===H&&z(W,n,e),m(t),n=w(n,!0),m(e),o(D,n)?(e.enumerable?(o(t,F)&&t[F][n]&&(t[F][n]=!1),e=S(e,{enumerable:O(0,!1)})):(o(t,F)||A(t,F,O(1,{})),t[F][n]=!0),U(t,n,e)):A(t,n,e)},Y=function(t,n){m(t);for(var e,r=b(n=g(n)),o=0,i=r.length;i>o;)z(t,e=r[o++],n[e]);return t},Q=function(t,n){return void 0===n?S(t):Y(S(t),n)},X=function(t){var n=I.call(this,t=w(t,!0));return!(this===H&&o(D,t)&&!o(W,t))&&(!(n||!o(this,t)||!o(D,t)||o(this,F)&&this[F][t])||n)},V=function(t,n){if(t=g(t),n=w(n,!0),t!==H||!o(D,n)||o(W,n)){var e=M(t,n);return!e||!o(D,n)||o(t,F)&&t[F][n]||(e.enumerable=!0),e}},Z=function(t){for(var n,e=T(g(t)),r=[],i=0;e.length>i;)o(D,n=e[i++])||n==F||n==c||r.push(n);return r},tt=function(t){for(var n,e=t===H,r=T(e?W:g(t)),i=[],u=0;r.length>u;)!o(D,n=r[u++])||e&&!o(H,n)||i.push(D[n]);return i};K||(L=function(){if(this instanceof L)throw TypeError("Symbol is not a constructor!");var t=p(arguments.length>0?arguments[0]:void 0),n=function(e){this===H&&n.call(W,e),o(this,F)&&o(this[F],t)&&(this[F][t]=!1),U(this,t,O(1,e))};return i&&J&&U(H,t,{configurable:!0,set:n}),G(t)},f(L[k],"toString",function(){return this._k}),j.f=V,P.f=z,e(33).f=_.f=Z,e(19).f=X,e(34).f=tt,i&&!e(18)&&f(H,"propertyIsEnumerable",X,!0),v.f=function(t){return G(d(t))}),u(u.G+u.W+u.F*!K,{Symbol:L});for(var nt="hasInstance,isConcatSpreadable,iterator,match,replace,search,species,split,toPrimitive,toStringTag,unscopables".split(","),et=0;nt.length>et;)d(nt[et++]);for(var nt=E(d.store),et=0;nt.length>et;)y(nt[et++]);u(u.S+u.F*!K,"Symbol",{for:function(t){return o(B,t+="")?B[t]:B[t]=L(t)},keyFor:function(t){if($(t))return h(B,t);throw TypeError(t+" is not a symbol!")},useSetter:function(){J=!0},useSimple:function(){J=!1}}),u(u.S+u.F*!K,"Object",{create:Q,defineProperty:z,defineProperties:Y,getOwnPropertyDescriptor:V,getOwnPropertyNames:Z,getOwnPropertySymbols:tt}),N&&u(u.S+u.F*(!K||a(function(){var t=L();return"[null]"!=C([t])||"{}"!=C({a:t})||"{}"!=C(Object(t))})),"JSON",{stringify:function(t){if(void 0!==t&&!$(t)){for(var n,e,r=[t],o=1;arguments.length>o;)r.push(arguments[o++]);return n=r[1],"function"==typeof n&&(e=n),!e&&x(n)||(n=function(t,n){if(e&&(n=e.call(this,t,n)),!$(n))return n}),r[1]=n,C.apply(N,r)}}}),L[k][q]||e(5)(L[k],q,L[k].valueOf),l(L,"Symbol"),l(Math,"Math",!0),l(r.JSON,"JSON",!0)},function(t,n,e){e(25)("asyncIterator")},function(t,n,e){e(25)("observable")},function(t,n,e){e(62);for(var r=e(1),o=e(5),i=e(17),u=e(7)("toStringTag"),f=["NodeList","DOMTokenList","MediaList","StyleSheetList","CSSRuleList"],c=0;c<5;c++){var a=f[c],s=r[a],l=s&&s.prototype;l&&!l[u]&&o(l,u,a),i[a]=i.Array}},function(t,n){"use strict";var e={versions:function(){var t=window.navigator.userAgent;return{trident:t.indexOf("Trident")>-1,presto:t.indexOf("Presto")>-1,webKit:t.indexOf("AppleWebKit")>-1,gecko:t.indexOf("Gecko")>-1&&t.indexOf("KHTML")==-1,mobile:!!t.match(/AppleWebKit.*Mobile.*/),ios:!!t.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/),android:t.indexOf("Android")>-1||t.indexOf("Linux")>-1,iPhone:t.indexOf("iPhone")>-1||t.indexOf("Mac")>-1,iPad:t.indexOf("iPad")>-1,webApp:t.indexOf("Safari")==-1,weixin:t.indexOf("MicroMessenger")==-1}}()};t.exports=e},function(t,n,e){"use strict";function r(t){return t&&t.__esModule?t:{default:t}}var o=e(40),i=r(o),u=function(){function t(t,n,e){return n||e?String.fromCharCode(n||e):o[t]||t}function n(t){return l[t]}var e=/&quot;|&lt;|&gt;|&amp;|&nbsp;|&apos;|&#(\d+);|&#(\d+)/g,r=/['<> "&]/g,o={"&quot;":'"',"&lt;":"<","&gt;":">","&amp;":"&","&nbsp;":" "},f=/\u00a0/g,c=/<br\s*\/?>/gi,a=/\r?\n/g,s=/\s/g,l={};for(var p in o)l[o[p]]=p;return o["&apos;"]="'",l["'"]="&#39;",{encode:function(t){return t?(""+t).replace(r,n).replace(a,"<br/>").replace(s,"&nbsp;"):""},decode:function(n){return n?(""+n).replace(c,"\n").replace(e,t).replace(f," "):""},encodeBase16:function(t){if(!t)return t;t+="";for(var n=[],e=0,r=t.length;r>e;e++)n.push(t.charCodeAt(e).toString(16).toUpperCase());return n.join("")},encodeBase16forJSON:function(t){if(!t)return t;t=t.replace(/[\u4E00-\u9FBF]/gi,function(t){return escape(t).replace("%u","\\u")});for(var n=[],e=0,r=t.length;r>e;e++)n.push(t.charCodeAt(e).toString(16).toUpperCase());return n.join("")},decodeBase16:function(t){if(!t)return t;t+="";for(var n=[],e=0,r=t.length;r>e;e+=2)n.push(String.fromCharCode("0x"+t.slice(e,e+2)));return n.join("")},encodeObject:function(t){if(t instanceof Array)for(var n=0,e=t.length;e>n;n++)t[n]=u.encodeObject(t[n]);else if("object"==("undefined"==typeof t?"undefined":(0,i.default)(t)))for(var r in t)t[r]=u.encodeObject(t[r]);else if("string"==typeof t)return u.encode(t);return t},loadScript:function(t){var n=document.createElement("script");document.getElementsByTagName("body")[0].appendChild(n),n.setAttribute("src",t)},addLoadEvent:function(t){var n=window.onload;"function"!=typeof window.onload?window.onload=t:window.onload=function(){n(),t()}}}}();t.exports=u},function(t,n){function e(t,n){t.classList?t.classList.add(n):t.className+=" "+n}t.exports=e},function(t,n){function e(t,n){if(t.classList)t.classList.remove(n);else{var e=new RegExp("(^|\\b)"+n.split(" ").join("|")+"(\\b|$)","gi");t.className=t.className.replace(e," ")}}t.exports=e},,,function(t,n){"use strict";function e(){var t=document.querySelector("#page-nav");if(t&&!document.querySelector("#page-nav .extend.prev")&&(t.innerHTML='<a class="extend prev disabled" rel="prev">&laquo; Prev</a>'+t.innerHTML),t&&!document.querySelector("#page-nav .extend.next")&&(t.innerHTML=t.innerHTML+'<a class="extend next disabled" rel="next">Next &raquo;</a>'),yiliaConfig&&yiliaConfig.open_in_new){var n=document.querySelectorAll(".article-entry a:not(.article-more-a)");n.forEach(function(t){t.setAttribute("target","_blank")})}var e=document.querySelector("#js-aboutme");e&&0!==e.length&&(e.innerHTML=e.innerText)}t.exports={init:e}},,,,,,,,,function(t,n){function e(t,n){if("string"==typeof n)return t.insertAdjacentHTML("afterend",n);var e=t.nextSibling;return e?t.parentNode.insertBefore(n,e):t.parentNode.appendChild(n)}t.exports=e}])</script><script src="/./main.2d7529.js"></script><script>!function(){var e=function(e){var t=document.createElement("script");document.getElementsByTagName("body")[0].appendChild(t),t.setAttribute("src",e)};e("/slider.885efe.js")}()</script>
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+    
+<div class="tools-col" q-class="show:isShow,hide:isShow|isFalse" q-on="click:stop(e)">
+  <div class="tools-nav header-menu">
+    
+    
+      
+      
+      
+    
+      
+      
+      
+    
+      
+    
+    
+
+    <ul style="width: 70%">
+    
+    
+      
+      <li style="width: 50%" q-on="click: openSlider(e, 'innerArchive')"><a href="javascript:void(0)" q-class="active:innerArchive">文章目录</a></li>
+      
+        
+      
+      <li style="width: 50%" q-on="click: openSlider(e, 'friends')"><a href="javascript:void(0)" q-class="active:friends">友情链接</a></li>
+      
+        
+      
+        
+    </ul>
+  </div>
+  <div class="tools-wrap">
+    
+    	<section class="tools-section tools-section-all" q-show="innerArchive">
+        <div class="search-wrap">
+          <input class="search-ipt" q-model="search" type="text" placeholder="find something…">
+          <i class="icon-search icon" q-show="search|isEmptyStr"></i>
+          <i class="icon-close icon" q-show="search|isNotEmptyStr" q-on="click:clearChose(e)"></i>
+        </div>
+        <div class="widget tagcloud search-tag">
+          <p class="search-tag-wording">tag:</p>
+          <label class="search-switch">
+            <input type="checkbox" q-on="click:toggleTag(e)" q-attr="checked:showTags">
+          </label>
+          <ul class="article-tag-list" q-show="showTags">
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">java</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">spring</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">myBatis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">python</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">opencv</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">车牌识别</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">机器学习</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">日常问题</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">感悟</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">思维</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">设计</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">技术</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">设计模式</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">设计原则</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">杂谈</a>
+              </li>
+            
+            <div class="clearfix"></div>
+          </ul>
+        </div>
+        <ul class="search-ul">
+          <p q-show="jsonFail" style="padding: 20px; font-size: 12px;">
+            缺失模块。<br/>1、在博客根目录（注意不是yilia根目录）执行以下命令：<br/> npm i hexo-generator-json-content --save<br/><br/>
+            2、在根目录_config.yml里添加配置：
+<pre style="font-size: 12px;" q-show="jsonFail">
+  jsonContent:
+    meta: false
+    pages: false
+    posts:
+      title: true
+      date: true
+      path: true
+      text: true
+      raw: false
+      content: false
+      slug: false
+      updated: false
+      comments: false
+      link: false
+      permalink: false
+      excerpt: false
+      categories: false
+      tags: true
+</pre>
+          </p>
+          <li class="search-li" q-repeat="items" q-show="isShow">
+            <a q-attr="href:path|urlformat" class="search-title"><i class="icon-quo-left icon"></i><span q-text="title"></span></a>
+            <p class="search-time">
+              <i class="icon-calendar icon"></i>
+              <span q-text="date|dateformat"></span>
+            </p>
+            <p class="search-tag">
+              <i class="icon-price-tags icon"></i>
+              <span q-repeat="tags" q-on="click:choseTag(e, name)" q-text="name|tagformat"></span>
+            </p>
+          </li>
+        </ul>
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-friends" q-show="friends">
+  		
+        <ul class="search-ul">
+          
+            <li class="search-li">
+              <a href="http://qgxiaozhan.com" target="_blank" class="search-title"><i class="icon-quo-left icon"></i>小展的博客（大数据）</a>
+            </li>
+          
+        </ul>
+  		
+    	</section>
+    
+
+    
+  </div>
+  
+</div>
+    <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+  </div>
+</body>
+</html>
